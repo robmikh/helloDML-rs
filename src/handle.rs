@@ -1,6 +1,7 @@
-use windows::{Win32::Foundation::{HANDLE, CloseHandle}, core::Result};
-
-
+use windows::{
+    core::Result,
+    Win32::Foundation::{CloseHandle, HANDLE},
+};
 
 #[repr(transparent)]
 pub struct AutoCloseHandle(pub HANDLE);

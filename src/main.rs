@@ -3,19 +3,62 @@ mod handle;
 
 use d3dx12::{D3DX12HeapProperties, D3DX12ResourceDesc};
 use handle::AutoCloseHandle;
-use windows::{core::{Result, Interface}, Win32::{Graphics::{Direct3D12::{ID3D12CommandQueue, ID3D12CommandAllocator, ID3D12GraphicsCommandList, ID3D12Device, D3D12GetDebugInterface, ID3D12Debug, D3D12CreateDevice, D3D12_COMMAND_QUEUE_DESC, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_QUEUE_FLAG_NONE, ID3D12Fence, D3D12_FENCE_FLAG_NONE, ID3D12DescriptorHeap, D3D12_DESCRIPTOR_HEAP_DESC, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, ID3D12Resource, D3D12_HEAP_TYPE_DEFAULT, D3D12_HEAP_FLAG_NONE, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_NONE, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_SUBRESOURCE_DATA, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RANGE}, Dxgi::{DXGI_ERROR_SDK_COMPONENT_MISSING, CreateDXGIFactory1, IDXGIFactory4, DXGI_ERROR_UNSUPPORTED}, Direct3D::D3D_FEATURE_LEVEL_11_0}, System::{Threading::{CreateEventW, WaitForSingleObjectEx}, WindowsProgramming::INFINITE}, AI::MachineLearning::DirectML::{DML_CREATE_DEVICE_FLAG_DEBUG, DML_CREATE_DEVICE_FLAG_NONE, DMLCreateDevice, IDMLDevice, DML_BUFFER_TENSOR_DESC, DML_TENSOR_DATA_TYPE_FLOAT32, DML_TENSOR_FLAG_NONE, DML_TENSOR_DATA_TYPE, DML_TENSOR_DATA_TYPE_UINT32, DML_TENSOR_DATA_TYPE_INT32, DML_TENSOR_DATA_TYPE_FLOAT16, DML_TENSOR_DATA_TYPE_UINT16, DML_TENSOR_DATA_TYPE_INT16, DML_TENSOR_DATA_TYPE_UINT8, DML_TENSOR_DATA_TYPE_INT8, DML_TENSOR_DATA_TYPE_FLOAT64, DML_TENSOR_DATA_TYPE_UINT64, DML_TENSOR_DATA_TYPE_INT64, IDMLOperator, DML_TENSOR_DESC, DML_TENSOR_TYPE_BUFFER, DML_ELEMENT_WISE_IDENTITY_OPERATOR_DESC, DML_OPERATOR_DESC, DML_OPERATOR_ELEMENT_WISE_IDENTITY, DML_EXECUTION_FLAG_NONE, IDMLCompiledOperator, IDMLOperatorInitializer, IDMLBindingTable, DML_BINDING_TABLE_DESC, DML_BUFFER_BINDING, DML_BINDING_DESC, DML_BINDING_TYPE_BUFFER, IDMLCommandRecorder}}};
+use windows::{
+    core::{Interface, Result},
+    Win32::{
+        Graphics::{
+            Direct3D::D3D_FEATURE_LEVEL_11_0,
+            Direct3D12::{
+                D3D12CreateDevice, D3D12GetDebugInterface, ID3D12CommandAllocator,
+                ID3D12CommandQueue, ID3D12Debug, ID3D12DescriptorHeap, ID3D12Device, ID3D12Fence,
+                ID3D12GraphicsCommandList, ID3D12Resource, D3D12_COMMAND_LIST_TYPE_DIRECT,
+                D3D12_COMMAND_QUEUE_DESC, D3D12_COMMAND_QUEUE_FLAG_NONE,
+                D3D12_DESCRIPTOR_HEAP_DESC, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_FENCE_FLAG_NONE,
+                D3D12_HEAP_FLAG_NONE, D3D12_HEAP_TYPE_DEFAULT, D3D12_HEAP_TYPE_READBACK,
+                D3D12_HEAP_TYPE_UPLOAD, D3D12_RANGE, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
+                D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_COMMON,
+                D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COPY_SOURCE,
+                D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                D3D12_SUBRESOURCE_DATA,
+            },
+            Dxgi::{
+                CreateDXGIFactory1, IDXGIFactory4, DXGI_ERROR_SDK_COMPONENT_MISSING,
+                DXGI_ERROR_UNSUPPORTED,
+            },
+        },
+        System::{
+            Threading::{CreateEventW, WaitForSingleObjectEx},
+            WindowsProgramming::INFINITE,
+        },
+        AI::MachineLearning::DirectML::{
+            DMLCreateDevice, IDMLBindingTable, IDMLCommandRecorder, IDMLCompiledOperator,
+            IDMLDevice, IDMLOperator, IDMLOperatorInitializer, DML_BINDING_DESC,
+            DML_BINDING_TABLE_DESC, DML_BINDING_TYPE_BUFFER, DML_BUFFER_BINDING,
+            DML_BUFFER_TENSOR_DESC, DML_CREATE_DEVICE_FLAG_DEBUG, DML_CREATE_DEVICE_FLAG_NONE,
+            DML_ELEMENT_WISE_IDENTITY_OPERATOR_DESC, DML_EXECUTION_FLAG_NONE, DML_OPERATOR_DESC,
+            DML_OPERATOR_ELEMENT_WISE_IDENTITY, DML_TENSOR_DATA_TYPE, DML_TENSOR_DATA_TYPE_FLOAT16,
+            DML_TENSOR_DATA_TYPE_FLOAT32, DML_TENSOR_DATA_TYPE_FLOAT64, DML_TENSOR_DATA_TYPE_INT16,
+            DML_TENSOR_DATA_TYPE_INT32, DML_TENSOR_DATA_TYPE_INT64, DML_TENSOR_DATA_TYPE_INT8,
+            DML_TENSOR_DATA_TYPE_UINT16, DML_TENSOR_DATA_TYPE_UINT32, DML_TENSOR_DATA_TYPE_UINT64,
+            DML_TENSOR_DATA_TYPE_UINT8, DML_TENSOR_DESC, DML_TENSOR_FLAG_NONE,
+            DML_TENSOR_TYPE_BUFFER,
+        },
+    },
+};
 
 use crate::d3dx12::{update_subresource_heap, D3DX12ResourceBarrier};
 
 const TENSOR_SIZES: [u32; 4] = [1, 2, 3, 4];
-const TENSOR_ELEMENT_COUNT: u32 = TENSOR_SIZES[0] * TENSOR_SIZES[1] * TENSOR_SIZES[2] * TENSOR_SIZES[3];
+const TENSOR_ELEMENT_COUNT: u32 =
+    TENSOR_SIZES[0] * TENSOR_SIZES[1] * TENSOR_SIZES[2] * TENSOR_SIZES[3];
 
 fn main() -> Result<()> {
     // Setup Direct3D12
     let (d3d12_device, command_queue, command_allocator, command_list) = init_d3d12()?;
 
     // Create the DirectML device
-    
+
     let dml_create_device_flags = if cfg!(feature = "dxdebug") {
         DML_CREATE_DEVICE_FLAG_DEBUG
     } else {
@@ -28,7 +71,7 @@ fn main() -> Result<()> {
         dml_device.unwrap()
     };
 
-    let dml_buffer_tensor_desc =  {
+    let dml_buffer_tensor_desc = {
         let data_type = DML_TENSOR_DATA_TYPE_FLOAT32;
         let dimension_count = TENSOR_SIZES.len() as u32;
 
@@ -42,7 +85,7 @@ fn main() -> Result<()> {
                 data_type,
                 dimension_count,
                 &TENSOR_SIZES,
-                None
+                None,
             ),
             ..Default::default()
         }
@@ -85,16 +128,19 @@ fn main() -> Result<()> {
 
     let dml_compiled_operator: IDMLCompiledOperator = unsafe {
         let mut dml_compiled_operator = None;
-        dml_device.CompileOperator(&dml_operator, DML_EXECUTION_FLAG_NONE, &mut dml_compiled_operator)?;
+        dml_device.CompileOperator(
+            &dml_operator,
+            DML_EXECUTION_FLAG_NONE,
+            &mut dml_compiled_operator,
+        )?;
         dml_compiled_operator.unwrap()
     };
 
     // 24 elements * 4 == 96 bytes.
     let tensor_buffer_size = dml_buffer_tensor_desc.TotalTensorSizeInBytes;
 
-    let dml_operator_initializer: IDMLOperatorInitializer = unsafe {
-        dml_device.CreateOperatorInitializer(Some(&[dml_compiled_operator.clone()]))?
-    };
+    let dml_operator_initializer: IDMLOperatorInitializer =
+        unsafe { dml_device.CreateOperatorInitializer(Some(&[dml_compiled_operator.clone()]))? };
 
     // Query the operator for the required size (in descriptors) of its binding table.
     // You need to initialize an operator exactly once before it can be executed, and
@@ -102,7 +148,9 @@ fn main() -> Result<()> {
     // we create a single descriptor heap that's large enough to satisfy them both.
     let initialize_binding_properties = unsafe { dml_operator_initializer.GetBindingProperties() };
     let execute_binding_properties = unsafe { dml_compiled_operator.GetBindingProperties() };
-    let descriptor_count = initialize_binding_properties.RequiredDescriptorCount.max(execute_binding_properties.RequiredDescriptorCount);
+    let descriptor_count = initialize_binding_properties
+        .RequiredDescriptorCount
+        .max(execute_binding_properties.RequiredDescriptorCount);
 
     // Create descriptor heaps
     let descriptor_heap: ID3D12DescriptorHeap = unsafe {
@@ -129,16 +177,17 @@ fn main() -> Result<()> {
         SizeInDescriptors: descriptor_count,
         ..Default::default()
     };
-    let dml_binding_table: IDMLBindingTable = unsafe {
-        dml_device.CreateBindingTable(Some(&dml_binding_table_desc))?
-    };
+    let dml_binding_table: IDMLBindingTable =
+        unsafe { dml_device.CreateBindingTable(Some(&dml_binding_table_desc))? };
 
     // Create the temporary and persistent resources that are necessary for executing an operator.
 
     // The temporary resource is scratch memory (used internally by DirectML), whose contents you don't need to define.
     // The persistent resource is long-lived, and you need to initialize it using the IDMLOperatorInitializer.
 
-    let temporary_resource_size = initialize_binding_properties.TemporaryResourceSize.max(execute_binding_properties.TemporaryResourceSize);
+    let temporary_resource_size = initialize_binding_properties
+        .TemporaryResourceSize
+        .max(execute_binding_properties.TemporaryResourceSize);
     let persistent_resource_size = execute_binding_properties.PersistentResourceSize;
 
     // Bind and initialize the operator on the GPU.
@@ -146,8 +195,11 @@ fn main() -> Result<()> {
     let temporary_buffer: Option<ID3D12Resource> = unsafe {
         if temporary_resource_size != 0 {
             let heap_properties = D3DX12HeapProperties::new(D3D12_HEAP_TYPE_DEFAULT);
-            let buffer_desc = D3DX12ResourceDesc::buffer(temporary_resource_size, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-            
+            let buffer_desc = D3DX12ResourceDesc::buffer(
+                temporary_resource_size,
+                D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
+            );
+
             let mut temporary_buffer = None;
             d3d12_device.CreateCommittedResource(
                 &heap_properties.0,
@@ -155,7 +207,7 @@ fn main() -> Result<()> {
                 &buffer_desc.0,
                 D3D12_RESOURCE_STATE_COMMON,
                 None,
-                &mut temporary_buffer
+                &mut temporary_buffer,
             )?;
             let temporary_buffer = temporary_buffer.unwrap();
 
@@ -181,7 +233,8 @@ fn main() -> Result<()> {
     let persistent_buffer: Option<ID3D12Resource> = unsafe {
         if persistent_resource_size != 0 {
             let heap_properties = D3DX12HeapProperties::new(D3D12_HEAP_TYPE_DEFAULT);
-            let buffer_desc = D3DX12ResourceDesc::buffer(temporary_resource_size, D3D12_RESOURCE_FLAG_NONE);
+            let buffer_desc =
+                D3DX12ResourceDesc::buffer(temporary_resource_size, D3D12_RESOURCE_FLAG_NONE);
 
             let mut persistent_buffer = None;
             d3d12_device.CreateCommittedResource(
@@ -190,7 +243,7 @@ fn main() -> Result<()> {
                 &buffer_desc.0,
                 D3D12_RESOURCE_STATE_COMMON,
                 None,
-                &mut persistent_buffer
+                &mut persistent_buffer,
             )?;
             let persistent_buffer = persistent_buffer.unwrap();
 
@@ -217,17 +270,26 @@ fn main() -> Result<()> {
 
     // Record execution of the operator initializer.
     unsafe {
-        dml_command_recorder.RecordDispatch(&command_list, &dml_operator_initializer, &dml_binding_table)
+        dml_command_recorder.RecordDispatch(
+            &command_list,
+            &dml_operator_initializer,
+            &dml_binding_table,
+        )
     }
 
     // Close the Direct3D 12 command list, and submit it for execution as you would any other command list. You could
     // in principle record the execution into the same command list as the initialization, but you need only to Initialize
     // once, and typically you want to Execute an operator more frequently than that.
-    close_execute_reset_wait(&d3d12_device, &command_queue, &command_allocator, &command_list)?;
+    close_execute_reset_wait(
+        &d3d12_device,
+        &command_queue,
+        &command_allocator,
+        &command_list,
+    )?;
 
-    // 
+    //
     // Bind and execute the operator on the GPU.
-    // 
+    //
 
     unsafe {
         command_list.SetDescriptorHeaps(&[descriptor_heap.clone()]);
@@ -238,9 +300,7 @@ fn main() -> Result<()> {
 
     let dispatchable = dml_compiled_operator.cast()?;
     dml_binding_table_desc.Dispatchable = windows::core::ManuallyDrop::new(&dispatchable);
-    unsafe {
-        dml_binding_table.Reset(Some(&dml_binding_table_desc))?
-    }
+    unsafe { dml_binding_table.Reset(Some(&dml_binding_table_desc))? }
 
     if let Some(temporary_buffer) = &temporary_buffer {
         let buffer_binding = DML_BUFFER_BINDING {
@@ -281,14 +341,17 @@ fn main() -> Result<()> {
             &buffer_desc.0,
             D3D12_RESOURCE_STATE_GENERIC_READ,
             None,
-            &mut upload_buffer
+            &mut upload_buffer,
         )?;
         upload_buffer.unwrap()
     };
 
     let input_buffer: ID3D12Resource = unsafe {
         let heap_properties = D3DX12HeapProperties::new(D3D12_HEAP_TYPE_DEFAULT);
-        let buffer_desc = D3DX12ResourceDesc::buffer(tensor_buffer_size, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        let buffer_desc = D3DX12ResourceDesc::buffer(
+            tensor_buffer_size,
+            D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
+        );
 
         let mut input_buffer = None;
         d3d12_device.CreateCommittedResource(
@@ -297,7 +360,7 @@ fn main() -> Result<()> {
             &buffer_desc.0,
             D3D12_RESOURCE_STATE_COPY_DEST,
             None,
-            &mut input_buffer
+            &mut input_buffer,
         )?;
         input_buffer.unwrap()
     };
@@ -317,13 +380,23 @@ fn main() -> Result<()> {
     };
 
     // Upload the input tensor to the GPU.
-    update_subresource_heap(&command_list, &input_buffer, &upload_buffer, 0, 0, 1, &[tensor_subresource_data]);
+    update_subresource_heap(
+        &command_list,
+        &input_buffer,
+        &upload_buffer,
+        0,
+        0,
+        1,
+        &[tensor_subresource_data],
+    );
 
     unsafe {
-        let transition_barrier = D3DX12ResourceBarrier::transition(&input_buffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-        command_list.ResourceBarrier(
-            &[transition_barrier.0]
-        )
+        let transition_barrier = D3DX12ResourceBarrier::transition(
+            &input_buffer,
+            D3D12_RESOURCE_STATE_COPY_DEST,
+            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+        );
+        command_list.ResourceBarrier(&[transition_barrier.0])
     }
 
     let input_buffer_binding = DML_BUFFER_BINDING {
@@ -335,13 +408,14 @@ fn main() -> Result<()> {
         Type: DML_BINDING_TYPE_BUFFER,
         Desc: &input_buffer_binding as *const _ as *const _,
     };
-    unsafe {
-        dml_binding_table.BindInputs(Some(&[input_binding_desc]))
-    }
+    unsafe { dml_binding_table.BindInputs(Some(&[input_binding_desc])) }
 
     let output_buffer: ID3D12Resource = unsafe {
         let heap_properties = D3DX12HeapProperties::new(D3D12_HEAP_TYPE_DEFAULT);
-        let buffer_desc = D3DX12ResourceDesc::buffer(tensor_buffer_size, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        let buffer_desc = D3DX12ResourceDesc::buffer(
+            tensor_buffer_size,
+            D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS,
+        );
 
         let mut output_buffer = None;
         d3d12_device.CreateCommittedResource(
@@ -350,7 +424,7 @@ fn main() -> Result<()> {
             &buffer_desc.0,
             D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
             None,
-            &mut output_buffer
+            &mut output_buffer,
         )?;
         output_buffer.unwrap()
     };
@@ -364,16 +438,23 @@ fn main() -> Result<()> {
         Type: DML_BINDING_TYPE_BUFFER,
         Desc: &output_buffer_binding as *const _ as *const _,
     };
-    unsafe {
-        dml_binding_table.BindOutputs(Some(&[output_binding_desc]))
-    }
+    unsafe { dml_binding_table.BindOutputs(Some(&[output_binding_desc])) }
 
     // Record execution of the compiled operator
     unsafe {
-        dml_command_recorder.RecordDispatch(&command_list, &dml_compiled_operator, &dml_binding_table)
+        dml_command_recorder.RecordDispatch(
+            &command_list,
+            &dml_compiled_operator,
+            &dml_binding_table,
+        )
     }
 
-    close_execute_reset_wait(&d3d12_device, &command_queue, &command_allocator, &command_list)?;
+    close_execute_reset_wait(
+        &d3d12_device,
+        &command_queue,
+        &command_allocator,
+        &command_list,
+    )?;
 
     // The output buffer now contains the result of the identity operator,
     // so read it back if you want the CPU to access it.
@@ -389,21 +470,28 @@ fn main() -> Result<()> {
             &buffer_desc.0,
             D3D12_RESOURCE_STATE_COPY_DEST,
             None,
-            &mut readback_buffer
+            &mut readback_buffer,
         )?;
         readback_buffer.unwrap()
     };
 
     unsafe {
-        let transition_barrier = D3DX12ResourceBarrier::transition(&output_buffer, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
-        command_list.ResourceBarrier(
-            &[transition_barrier.0]
+        let transition_barrier = D3DX12ResourceBarrier::transition(
+            &output_buffer,
+            D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+            D3D12_RESOURCE_STATE_COPY_SOURCE,
         );
+        command_list.ResourceBarrier(&[transition_barrier.0]);
 
         command_list.CopyResource(&readback_buffer, &output_buffer);
     }
 
-    close_execute_reset_wait(&d3d12_device, &command_queue, &command_allocator, &command_list)?;
+    close_execute_reset_wait(
+        &d3d12_device,
+        &command_queue,
+        &command_allocator,
+        &command_list,
+    )?;
 
     let tensor_buffer_range = D3D12_RANGE {
         Begin: 0,
@@ -411,7 +499,11 @@ fn main() -> Result<()> {
     };
     let mut output_buffer_data: *mut f32 = unsafe {
         let mut output_buffer_data = std::ptr::null_mut();
-        readback_buffer.Map(0, Some(&tensor_buffer_range), Some(&mut output_buffer_data as *mut _ as *mut _))?;
+        readback_buffer.Map(
+            0,
+            Some(&tensor_buffer_range),
+            Some(&mut output_buffer_data as *mut _ as *mut _),
+        )?;
         output_buffer_data
     };
 
@@ -425,14 +517,17 @@ fn main() -> Result<()> {
     println!("");
 
     let empty_range = D3D12_RANGE::default();
-    unsafe {
-        readback_buffer.Unmap(0, Some(&empty_range))
-    }
+    unsafe { readback_buffer.Unmap(0, Some(&empty_range)) }
 
     Ok(())
 }
 
-fn init_d3d12() -> Result<(ID3D12Device, ID3D12CommandQueue, ID3D12CommandAllocator, ID3D12GraphicsCommandList)> {
+fn init_d3d12() -> Result<(
+    ID3D12Device,
+    ID3D12CommandQueue,
+    ID3D12CommandAllocator,
+    ID3D12GraphicsCommandList,
+)> {
     if cfg!(feature = "dxdebug") {
         let d3d12_debug: ID3D12Debug = unsafe {
             let mut d3d12_debug = None;
@@ -452,14 +547,13 @@ fn init_d3d12() -> Result<(ID3D12Device, ID3D12CommandQueue, ID3D12CommandAlloca
 
         let mut adapter_index = 0;
         while let Ok(adapter) = unsafe { dxgi_factory.EnumAdapters(adapter_index) } {
-            let result = unsafe { D3D12CreateDevice(&adapter, D3D_FEATURE_LEVEL_11_0, &mut d3d12_device) };
+            let result =
+                unsafe { D3D12CreateDevice(&adapter, D3D_FEATURE_LEVEL_11_0, &mut d3d12_device) };
             if let Err(error) = result {
                 if error.code() != DXGI_ERROR_UNSUPPORTED {
                     return Err(error);
                 }
-            }
-            else
-            {
+            } else {
                 break;
             }
             adapter_index += 1;
@@ -481,12 +575,16 @@ fn init_d3d12() -> Result<(ID3D12Device, ID3D12CommandQueue, ID3D12CommandAlloca
         d3d12_device.CreateCommandQueue(&desc)?
     };
 
-    let command_allocator: ID3D12CommandAllocator = unsafe {
-        d3d12_device.CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT)?
-    };
+    let command_allocator: ID3D12CommandAllocator =
+        unsafe { d3d12_device.CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT)? };
 
     let command_list: ID3D12GraphicsCommandList = unsafe {
-        d3d12_device.CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, &command_allocator, None)?
+        d3d12_device.CreateCommandList(
+            0,
+            D3D12_COMMAND_LIST_TYPE_DIRECT,
+            &command_allocator,
+            None,
+        )?
     };
 
     Ok((d3d12_device, command_queue, command_allocator, command_list))
@@ -496,7 +594,7 @@ fn close_execute_reset_wait(
     d3d12_device: &ID3D12Device,
     command_queue: &ID3D12CommandQueue,
     command_allocator: &ID3D12CommandAllocator,
-    command_list: &ID3D12GraphicsCommandList
+    command_list: &ID3D12GraphicsCommandList,
 ) -> Result<()> {
     unsafe {
         command_list.Close()?;
@@ -529,10 +627,16 @@ fn dml_calc_buffer_tensor_size(
     };
 
     let element_size_in_bytes = match data_type {
-        DML_TENSOR_DATA_TYPE_FLOAT32 | DML_TENSOR_DATA_TYPE_UINT32 | DML_TENSOR_DATA_TYPE_INT32 => 4,
-        DML_TENSOR_DATA_TYPE_FLOAT16 | DML_TENSOR_DATA_TYPE_UINT16 | DML_TENSOR_DATA_TYPE_INT16 => 2,
+        DML_TENSOR_DATA_TYPE_FLOAT32 | DML_TENSOR_DATA_TYPE_UINT32 | DML_TENSOR_DATA_TYPE_INT32 => {
+            4
+        }
+        DML_TENSOR_DATA_TYPE_FLOAT16 | DML_TENSOR_DATA_TYPE_UINT16 | DML_TENSOR_DATA_TYPE_INT16 => {
+            2
+        }
         DML_TENSOR_DATA_TYPE_UINT8 | DML_TENSOR_DATA_TYPE_INT8 => 1,
-        DML_TENSOR_DATA_TYPE_FLOAT64 | DML_TENSOR_DATA_TYPE_UINT64 | DML_TENSOR_DATA_TYPE_INT64 => 8,
+        DML_TENSOR_DATA_TYPE_FLOAT64 | DML_TENSOR_DATA_TYPE_UINT64 | DML_TENSOR_DATA_TYPE_INT64 => {
+            8
+        }
         _ => 0, // Invalid data type
     };
 
