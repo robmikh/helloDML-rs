@@ -1,4 +1,4 @@
-use windows::Win32::Graphics::{Direct3D12::{D3D12_HEAP_PROPERTIES, D3D12_HEAP_TYPE, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, D3D12_HEAP_TYPE_UPLOAD, D3D12_HEAP_TYPE_READBACK, D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE, D3D12_CPU_PAGE_PROPERTY_WRITE_BACK, D3D12_HEAP_TYPE_CUSTOM, D3D12_RESOURCE_DESC, D3D12_RESOURCE_ALLOCATION_INFO, D3D12_RESOURCE_FLAGS, D3D12_RESOURCE_DIMENSION_BUFFER, D3D12_TEXTURE_LAYOUT_ROW_MAJOR, ID3D12GraphicsCommandList, ID3D12Resource, D3D12_PLACED_SUBRESOURCE_FOOTPRINT, D3D12_SUBRESOURCE_DATA, D3D12_MEMCPY_DEST, D3D12_TEXTURE_COPY_LOCATION, D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX, D3D12_TEXTURE_COPY_LOCATION_0, ID3D12Device, D3D12_RESOURCE_BARRIER, D3D12_RESOURCE_STATES, D3D12_RESOURCE_BARRIER_TYPE_TRANSITION, D3D12_RESOURCE_BARRIER_FLAG_NONE, D3D12_RESOURCE_BARRIER_0, D3D12_RESOURCE_TRANSITION_BARRIER, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES}, Dxgi::Common::{DXGI_FORMAT_UNKNOWN, DXGI_SAMPLE_DESC}};
+use windows::Win32::Graphics::{Direct3D12::{D3D12_HEAP_PROPERTIES, D3D12_HEAP_TYPE, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, D3D12_RESOURCE_DESC, D3D12_RESOURCE_FLAGS, D3D12_RESOURCE_DIMENSION_BUFFER, D3D12_TEXTURE_LAYOUT_ROW_MAJOR, ID3D12GraphicsCommandList, ID3D12Resource, D3D12_PLACED_SUBRESOURCE_FOOTPRINT, D3D12_SUBRESOURCE_DATA, D3D12_MEMCPY_DEST, D3D12_TEXTURE_COPY_LOCATION, D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX, D3D12_TEXTURE_COPY_LOCATION_0, ID3D12Device, D3D12_RESOURCE_BARRIER, D3D12_RESOURCE_STATES, D3D12_RESOURCE_BARRIER_TYPE_TRANSITION, D3D12_RESOURCE_BARRIER_FLAG_NONE, D3D12_RESOURCE_BARRIER_0, D3D12_RESOURCE_TRANSITION_BARRIER, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES}, Dxgi::Common::{DXGI_FORMAT_UNKNOWN, DXGI_SAMPLE_DESC}};
 
 const SIZE_MAX: u64 = 0xffffffffffffffff;
 
@@ -16,21 +16,10 @@ impl D3DX12HeapProperties {
                 Type: ty,
                 CPUPageProperty: D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
                 MemoryPoolPreference: D3D12_MEMORY_POOL_UNKNOWN,
-                CreationNodeMask: 1,
-                VisibleNodeMask: 1
+                CreationNodeMask: creation_node_mask,
+                VisibleNodeMask: node_mask
             }
         )
-    }
-
-    pub fn is_cpu_accessible(&self) -> bool {
-        return self.0.Type == D3D12_HEAP_TYPE_UPLOAD || self.0.Type == D3D12_HEAP_TYPE_READBACK || 
-        (
-            self.0.Type == D3D12_HEAP_TYPE_CUSTOM && 
-            (
-                self.0.CPUPageProperty == D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE || 
-                self.0.CPUPageProperty == D3D12_CPU_PAGE_PROPERTY_WRITE_BACK
-            )
-        );
     }
 }
 
@@ -44,9 +33,6 @@ impl PartialEq for D3DX12HeapProperties {
 pub struct D3DX12ResourceDesc(pub D3D12_RESOURCE_DESC);
 
 impl D3DX12ResourceDesc {
-    pub fn buffer_with_alloc_info(res_alloc_info: &D3D12_RESOURCE_ALLOCATION_INFO, flags: D3D12_RESOURCE_FLAGS) -> Self {
-        Self::buffer_with_alignemnt(res_alloc_info.SizeInBytes, flags, res_alloc_info.Alignment)
-    }
     pub fn buffer(width: u64, flags: D3D12_RESOURCE_FLAGS) -> Self {
         Self::buffer_with_alignemnt(width, flags, 0)
     }
@@ -206,7 +192,7 @@ pub fn update_subresource_heap(
     let desc = unsafe { destination_resource.GetDesc() };
     let d3d12_device: ID3D12Device = unsafe {
         let mut d3d12_device = None;
-        destination_resource.GetDevice(&mut d3d12_device);
+        destination_resource.GetDevice(&mut d3d12_device).unwrap();
         d3d12_device.unwrap()
     };
     unsafe {
@@ -228,7 +214,7 @@ pub fn memcpy_subresource(
 
             let dest_slice = unsafe { std::slice::from_raw_parts_mut(dest_ptr, row_size_in_bytes as usize) };
             let src_slice = unsafe { std::slice::from_raw_parts(src_ptr, row_size_in_bytes as usize) };
-            for y in 0..num_rows {
+            for _ in 0..num_rows {
                 dest_slice.copy_from_slice(src_slice);
             }
         }

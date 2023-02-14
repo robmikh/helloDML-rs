@@ -3,12 +3,12 @@ mod handle;
 
 use d3dx12::{D3DX12HeapProperties, D3DX12ResourceDesc};
 use handle::AutoCloseHandle;
-use windows::{core::{Result, Interface}, Win32::{Graphics::{Direct3D12::{ID3D12CommandQueue, ID3D12CommandAllocator, ID3D12GraphicsCommandList, ID3D12Device, D3D12GetDebugInterface, ID3D12Debug, D3D12CreateDevice, D3D12_COMMAND_QUEUE_DESC, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_QUEUE_FLAG_NONE, ID3D12Fence, D3D12_FENCE_FLAG_NONE, ID3D12DescriptorHeap, D3D12_DESCRIPTOR_HEAP_DESC, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, ID3D12Resource, D3D12_HEAP_TYPE_DEFAULT, D3D12_HEAP_FLAG_NONE, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_NONE, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_SUBRESOURCE_DATA, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RANGE}, Dxgi::{DXGI_ERROR_SDK_COMPONENT_MISSING, CreateDXGIFactory1, IDXGIFactory4, DXGI_ERROR_UNSUPPORTED}, Direct3D::D3D_FEATURE_LEVEL_11_0}, System::{Threading::{CreateEventW, WaitForSingleObjectEx}, WindowsProgramming::INFINITE}, AI::MachineLearning::DirectML::{DML_CREATE_DEVICE_FLAGS, DML_CREATE_DEVICE_FLAG_DEBUG, DML_CREATE_DEVICE_FLAG_NONE, DMLCreateDevice, IDMLDevice, DML_BUFFER_TENSOR_DESC, DML_TENSOR_DATA_TYPE_FLOAT32, DML_TENSOR_FLAG_NONE, DML_TENSOR_DATA_TYPE, DML_TENSOR_DATA_TYPE_UINT32, DML_TENSOR_DATA_TYPE_INT32, DML_TENSOR_DATA_TYPE_FLOAT16, DML_TENSOR_DATA_TYPE_UINT16, DML_TENSOR_DATA_TYPE_INT16, DML_TENSOR_DATA_TYPE_UINT8, DML_TENSOR_DATA_TYPE_INT8, DML_TENSOR_DATA_TYPE_FLOAT64, DML_TENSOR_DATA_TYPE_UINT64, DML_TENSOR_DATA_TYPE_INT64, IDMLOperator, DML_TENSOR_DESC, DML_TENSOR_TYPE_BUFFER, DML_ELEMENT_WISE_IDENTITY_OPERATOR_DESC, DML_OPERATOR_DESC, DML_OPERATOR_ELEMENT_WISE_IDENTITY, DML_EXECUTION_FLAG_NONE, IDMLCompiledOperator, IDMLOperatorInitializer, IDMLBindingTable, DML_BINDING_TABLE_DESC, DML_BUFFER_BINDING, DML_BINDING_DESC, DML_BINDING_TYPE_BUFFER, IDMLCommandRecorder}}};
+use windows::{core::{Result, Interface}, Win32::{Graphics::{Direct3D12::{ID3D12CommandQueue, ID3D12CommandAllocator, ID3D12GraphicsCommandList, ID3D12Device, D3D12GetDebugInterface, ID3D12Debug, D3D12CreateDevice, D3D12_COMMAND_QUEUE_DESC, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_QUEUE_FLAG_NONE, ID3D12Fence, D3D12_FENCE_FLAG_NONE, ID3D12DescriptorHeap, D3D12_DESCRIPTOR_HEAP_DESC, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE, ID3D12Resource, D3D12_HEAP_TYPE_DEFAULT, D3D12_HEAP_FLAG_NONE, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_NONE, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_SUBRESOURCE_DATA, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RANGE}, Dxgi::{DXGI_ERROR_SDK_COMPONENT_MISSING, CreateDXGIFactory1, IDXGIFactory4, DXGI_ERROR_UNSUPPORTED}, Direct3D::D3D_FEATURE_LEVEL_11_0}, System::{Threading::{CreateEventW, WaitForSingleObjectEx}, WindowsProgramming::INFINITE}, AI::MachineLearning::DirectML::{DML_CREATE_DEVICE_FLAG_DEBUG, DML_CREATE_DEVICE_FLAG_NONE, DMLCreateDevice, IDMLDevice, DML_BUFFER_TENSOR_DESC, DML_TENSOR_DATA_TYPE_FLOAT32, DML_TENSOR_FLAG_NONE, DML_TENSOR_DATA_TYPE, DML_TENSOR_DATA_TYPE_UINT32, DML_TENSOR_DATA_TYPE_INT32, DML_TENSOR_DATA_TYPE_FLOAT16, DML_TENSOR_DATA_TYPE_UINT16, DML_TENSOR_DATA_TYPE_INT16, DML_TENSOR_DATA_TYPE_UINT8, DML_TENSOR_DATA_TYPE_INT8, DML_TENSOR_DATA_TYPE_FLOAT64, DML_TENSOR_DATA_TYPE_UINT64, DML_TENSOR_DATA_TYPE_INT64, IDMLOperator, DML_TENSOR_DESC, DML_TENSOR_TYPE_BUFFER, DML_ELEMENT_WISE_IDENTITY_OPERATOR_DESC, DML_OPERATOR_DESC, DML_OPERATOR_ELEMENT_WISE_IDENTITY, DML_EXECUTION_FLAG_NONE, IDMLCompiledOperator, IDMLOperatorInitializer, IDMLBindingTable, DML_BINDING_TABLE_DESC, DML_BUFFER_BINDING, DML_BINDING_DESC, DML_BINDING_TYPE_BUFFER, IDMLCommandRecorder}}};
 
 use crate::d3dx12::{update_subresource_heap, D3DX12ResourceBarrier};
 
-const tensor_sizes: [u32; 4] = [1, 2, 3, 4];
-const tensor_element_count: u32 = tensor_sizes[0] * tensor_sizes[1] * tensor_sizes[2] * tensor_sizes[3];
+const TENSOR_SIZES: [u32; 4] = [1, 2, 3, 4];
+const TENSOR_ELEMENT_COUNT: u32 = TENSOR_SIZES[0] * TENSOR_SIZES[1] * TENSOR_SIZES[2] * TENSOR_SIZES[3];
 
 fn main() -> Result<()> {
     // Setup Direct3D12
@@ -30,18 +30,18 @@ fn main() -> Result<()> {
 
     let dml_buffer_tensor_desc =  {
         let data_type = DML_TENSOR_DATA_TYPE_FLOAT32;
-        let dimension_count = tensor_sizes.len() as u32;
+        let dimension_count = TENSOR_SIZES.len() as u32;
 
         DML_BUFFER_TENSOR_DESC {
             DataType: data_type,
             Flags: DML_TENSOR_FLAG_NONE,
             DimensionCount: dimension_count,
-            Sizes: tensor_sizes.as_ptr(),
+            Sizes: TENSOR_SIZES.as_ptr(),
             Strides: std::ptr::null(),
             TotalTensorSizeInBytes: dml_calc_buffer_tensor_size(
                 data_type,
                 dimension_count,
-                &tensor_sizes,
+                &TENSOR_SIZES,
                 None
             ),
             ..Default::default()
@@ -302,7 +302,7 @@ fn main() -> Result<()> {
         input_buffer.unwrap()
     };
 
-    let input_tensor_element_array = vec![1.618f32; tensor_element_count as usize];
+    let input_tensor_element_array = vec![1.618f32; TENSOR_ELEMENT_COUNT as usize];
     print!("input tensor: ");
     for element in &input_tensor_element_array {
         print!("{:.2} ", element);
@@ -416,7 +416,7 @@ fn main() -> Result<()> {
     };
 
     print!("output tensor: ");
-    for _ in 0..tensor_element_count {
+    for _ in 0..TENSOR_ELEMENT_COUNT {
         unsafe {
             print!("{:.2} ", *output_buffer_data);
             output_buffer_data = output_buffer_data.add(1);
@@ -536,7 +536,7 @@ fn dml_calc_buffer_tensor_size(
         _ => 0, // Invalid data type
     };
 
-    let mut minimum_implied_size_in_bytes = 0;
+    let mut minimum_implied_size_in_bytes;
     if let Some(strides) = strides {
         let mut index_of_last_element = 0;
         for i in 0..dimension_count {
